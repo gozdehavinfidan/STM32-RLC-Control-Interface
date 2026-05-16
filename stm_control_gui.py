@@ -385,7 +385,7 @@ class StmControlApp(tk.Tk):
         self._button_style(style, "Secondary.TButton", COLORS["secondary"], "#ffffff", COLORS["secondary_hover"], COLORS["secondary"])
         self._button_style(style, "Success.TButton", COLORS["success"], "#ffffff", COLORS["success_hover"], COLORS["success"])
         self._button_style(style, "Warning.TButton", COLORS["warning"], "#ffffff", COLORS["warning_hover"], COLORS["warning"])
-        self._button_style(style, "Clear.TButton", COLORS["clear"], COLORS["text"], COLORS["clear_hover"], "#ff8f00")
+        self._button_style(style, "Clear.TButton", COLORS["clear"], "#ffffff", COLORS["clear_hover"], "#ff8f00")
         self._button_style(style, "Reset.TButton", COLORS["reset"], "#ffffff", COLORS["reset_hover"], "#283593")
         self._button_style(style, "Danger.TButton", COLORS["danger"], "#ffffff", COLORS["danger_hover"], COLORS["danger"])
         self._button_style(style, "Tool.TButton", "#455a64", "#ffffff", "#37474f", "#263238")
