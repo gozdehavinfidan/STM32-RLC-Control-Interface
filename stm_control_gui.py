@@ -18,7 +18,7 @@ except ImportError:
 
 BAUD_DEFAULT = 115200
 MAX_POINTS = 1500
-WAVES = ("DC", "STEP", "SQUARE", "PULSE", "SINE", "TRIANGLE")
+WAVES = ("DC", "STEP", "SQUARE", "PULSE", "IMPULSE", "SINE", "TRIANGLE")
 COLORS = {
     "surface": "#f5f7fb",
     "panel": "#ffffff",

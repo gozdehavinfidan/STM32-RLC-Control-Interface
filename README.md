@@ -60,6 +60,7 @@ t, ADC mV, DAC mV, error mV, zoom level, visible window
 - `STEP`: constant high level, useful for capture mode
 - `SQUARE`: periodic 50% duty wave
 - `PULSE`: periodic wave using the `Duty %` field
+- `IMPULSE`: one-sample high pulse at the start of each period
 - `SINE`: unipolar sine from `Offset` to `Offset + Amp`
 - `TRIANGLE`: unipolar triangle from `Offset` to `Offset + Amp`
 
