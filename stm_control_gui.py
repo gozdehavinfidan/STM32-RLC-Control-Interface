@@ -19,6 +19,24 @@ except ImportError:
 BAUD_DEFAULT = 115200
 MAX_POINTS = 1500
 WAVES = ("DC", "STEP", "SQUARE", "PULSE", "SINE", "TRIANGLE")
+COLORS = {
+    "surface": "#f5f7fb",
+    "panel": "#ffffff",
+    "text": "#202124",
+    "primary": "#1976d2",
+    "primary_hover": "#1565c0",
+    "primary_active": "#0d47a1",
+    "secondary": "#5e35b1",
+    "secondary_hover": "#512da8",
+    "success": "#2e7d32",
+    "success_hover": "#1b5e20",
+    "warning": "#f57c00",
+    "warning_hover": "#ef6c00",
+    "danger": "#c62828",
+    "danger_hover": "#b71c1c",
+    "neutral": "#eceff1",
+    "neutral_hover": "#cfd8dc",
+}
 
 
 class SerialWorker:
@@ -210,37 +228,74 @@ class StmControlApp(tk.Tk):
     def _build_ui(self):
         style = ttk.Style()
         style.theme_use("clam")
+        self._configure_styles(style)
 
-        root = ttk.Frame(self, padding=10)
+        self.configure(background=COLORS["surface"])
+
+        root = ttk.Frame(self, padding=10, style="App.TFrame")
         root.pack(fill="both", expand=True)
 
-        left = ttk.Frame(root, width=300)
+        left = ttk.Frame(root, width=300, style="App.TFrame")
         left.pack(side="left", fill="y", padx=(0, 10))
         left.pack_propagate(False)
 
-        right = ttk.Frame(root)
+        right = ttk.Frame(root, style="App.TFrame")
         right.pack(side="right", fill="both", expand=True)
 
         self._build_connection(left)
         self._build_controls(left)
         self._build_log(left)
 
-        plot_tools = ttk.Frame(right)
+        plot_tools = ttk.Frame(right, style="App.TFrame")
         plot_tools.pack(fill="x", pady=(0, 6))
-        ttk.Button(plot_tools, text="Zoom In", command=self.zoom_in).pack(side="left", padx=(0, 6))
-        ttk.Button(plot_tools, text="Zoom Out", command=self.zoom_out).pack(side="left", padx=(0, 6))
-        ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom).pack(side="left")
+        ttk.Button(plot_tools, text="Zoom In", command=self.zoom_in, style="Tool.TButton").pack(side="left", padx=(0, 6))
+        ttk.Button(plot_tools, text="Zoom Out", command=self.zoom_out, style="Tool.TButton").pack(side="left", padx=(0, 6))
+        ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom, style="Neutral.TButton").pack(side="left")
         ttk.Label(plot_tools, text="Mouse wheel also zooms the graph").pack(side="right")
 
         self.plot = PlotCanvas(right)
         self.plot.pack(fill="both", expand=True)
 
-        status = ttk.Frame(right)
+        status = ttk.Frame(right, style="App.TFrame")
         status.pack(fill="x", pady=(8, 0))
         self.status_var = tk.StringVar(value="Disconnected")
         self.latest_var = tk.StringVar(value="ADC: - mV    DAC: - mV")
         ttk.Label(status, textvariable=self.status_var).pack(side="left")
         ttk.Label(status, textvariable=self.latest_var).pack(side="right")
+
+    def _configure_styles(self, style):
+        style.configure(".", font=("Segoe UI", 9), background=COLORS["surface"], foreground=COLORS["text"])
+        style.configure("App.TFrame", background=COLORS["surface"])
+        style.configure("TLabelframe", background=COLORS["surface"], bordercolor="#cfd8dc", relief="solid")
+        style.configure("TLabelframe.Label", background=COLORS["surface"], foreground=COLORS["text"], font=("Segoe UI", 9, "bold"))
+        style.configure("TLabel", background=COLORS["surface"], foreground=COLORS["text"])
+        style.configure("TEntry", fieldbackground=COLORS["panel"], foreground=COLORS["text"], bordercolor="#b0bec5")
+        style.configure("TCombobox", fieldbackground=COLORS["panel"], foreground=COLORS["text"], bordercolor="#b0bec5")
+
+        self._button_style(style, "Primary.TButton", COLORS["primary"], "#ffffff", COLORS["primary_hover"], COLORS["primary_active"])
+        self._button_style(style, "Secondary.TButton", COLORS["secondary"], "#ffffff", COLORS["secondary_hover"], COLORS["secondary"])
+        self._button_style(style, "Success.TButton", COLORS["success"], "#ffffff", COLORS["success_hover"], COLORS["success"])
+        self._button_style(style, "Warning.TButton", COLORS["warning"], "#ffffff", COLORS["warning_hover"], COLORS["warning"])
+        self._button_style(style, "Danger.TButton", COLORS["danger"], "#ffffff", COLORS["danger_hover"], COLORS["danger"])
+        self._button_style(style, "Tool.TButton", "#455a64", "#ffffff", "#37474f", "#263238")
+        self._button_style(style, "Neutral.TButton", COLORS["neutral"], COLORS["text"], COLORS["neutral_hover"], "#b0bec5")
+
+    def _button_style(self, style, name, bg, fg, hover, active):
+        style.configure(
+            name,
+            background=bg,
+            foreground=fg,
+            borderwidth=0,
+            focusthickness=0,
+            focuscolor=bg,
+            padding=(12, 8),
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.map(
+            name,
+            background=[("active", hover), ("pressed", active), ("disabled", "#b0bec5")],
+            foreground=[("disabled", "#eceff1")],
+        )
 
     def _build_connection(self, parent):
         frame = ttk.LabelFrame(parent, text="Connection", padding=8)
@@ -250,16 +305,16 @@ class StmControlApp(tk.Tk):
         self.port_var = tk.StringVar()
         self.port_box = ttk.Combobox(frame, textvariable=self.port_var, width=16, state="readonly")
         self.port_box.grid(row=0, column=1, sticky="ew", padx=6)
-        ttk.Button(frame, text="Refresh", command=self.refresh_ports).grid(row=0, column=2)
+        ttk.Button(frame, text="Refresh", command=self.refresh_ports, style="Neutral.TButton").grid(row=0, column=2)
 
         ttk.Label(frame, text="Baud").grid(row=1, column=0, sticky="w", pady=(6, 0))
         self.baud_var = tk.StringVar(value=str(BAUD_DEFAULT))
         ttk.Entry(frame, textvariable=self.baud_var, width=12).grid(row=1, column=1, sticky="ew", padx=6, pady=(6, 0))
 
-        buttons = ttk.Frame(frame)
+        buttons = ttk.Frame(frame, style="App.TFrame")
         buttons.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(8, 0))
-        ttk.Button(buttons, text="Connect", command=self.connect).pack(side="left", fill="x", expand=True, padx=(0, 4))
-        ttk.Button(buttons, text="Disconnect", command=self.disconnect).pack(side="left", fill="x", expand=True, padx=(4, 0))
+        ttk.Button(buttons, text="Connect", command=self.connect, style="Success.TButton").pack(side="left", fill="x", expand=True, padx=(0, 4))
+        ttk.Button(buttons, text="Disconnect", command=self.disconnect, style="Neutral.TButton").pack(side="left", fill="x", expand=True, padx=(4, 0))
 
         frame.columnconfigure(1, weight=1)
 
@@ -291,12 +346,12 @@ class StmControlApp(tk.Tk):
 
         frame.columnconfigure(1, weight=1)
 
-        ttk.Button(frame, text="Apply Settings", command=self.apply_settings).grid(row=7, column=0, columnspan=2, sticky="ew", pady=(10, 3))
-        ttk.Button(frame, text="Start Live", command=self.start_live).grid(row=8, column=0, columnspan=2, sticky="ew", pady=3)
-        ttk.Button(frame, text="Start Capture", command=self.start_capture).grid(row=9, column=0, columnspan=2, sticky="ew", pady=3)
-        ttk.Button(frame, text="Stop", command=self.stop).grid(row=10, column=0, columnspan=2, sticky="ew", pady=3)
-        ttk.Button(frame, text="Clear Plot", command=self.clear_plot).grid(row=11, column=0, columnspan=2, sticky="ew", pady=(10, 3))
-        ttk.Button(frame, text="Save CSV", command=self.save_csv).grid(row=12, column=0, columnspan=2, sticky="ew", pady=3)
+        ttk.Button(frame, text="Apply Settings", command=self.apply_settings, style="Secondary.TButton").grid(row=7, column=0, columnspan=2, sticky="ew", pady=(10, 3))
+        ttk.Button(frame, text="Start Live", command=self.start_live, style="Primary.TButton").grid(row=8, column=0, columnspan=2, sticky="ew", pady=3)
+        ttk.Button(frame, text="Start Capture", command=self.start_capture, style="Success.TButton").grid(row=9, column=0, columnspan=2, sticky="ew", pady=3)
+        ttk.Button(frame, text="Stop", command=self.stop, style="Danger.TButton").grid(row=10, column=0, columnspan=2, sticky="ew", pady=3)
+        ttk.Button(frame, text="Clear Plot", command=self.clear_plot, style="Neutral.TButton").grid(row=11, column=0, columnspan=2, sticky="ew", pady=(10, 3))
+        ttk.Button(frame, text="Save CSV", command=self.save_csv, style="Warning.TButton").grid(row=12, column=0, columnspan=2, sticky="ew", pady=3)
 
     def _build_log(self, parent):
         frame = ttk.LabelFrame(parent, text="Serial Log", padding=8)
