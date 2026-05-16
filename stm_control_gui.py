@@ -99,21 +99,29 @@ class PlotCanvas(tk.Canvas):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, background="#101418", highlightthickness=0, **kwargs)
         self.zoom_level = 1
+        self.view_range = None
+        self.plot_bounds = None
         self._last_adc_points = []
         self._last_dac_points = []
         self.bind("<Configure>", lambda _event: self.redraw_cached())
         self.bind("<MouseWheel>", self._on_mouse_wheel)
+        self.bind("<ButtonPress-1>", self._on_drag_start)
+        self.bind("<B1-Motion>", self._on_drag_move)
+        self.bind("<ButtonRelease-1>", self._on_drag_end)
+        self._drag_start_x = None
+        self._selection_id = None
 
     def zoom_in(self):
-        self.zoom_level = min(self.zoom_level * 2, 64)
+        self._zoom_around_center(0.5)
         self.redraw_cached()
 
     def zoom_out(self):
-        self.zoom_level = max(self.zoom_level // 2, 1)
+        self._zoom_around_center(2.0)
         self.redraw_cached()
 
     def reset_zoom(self):
         self.zoom_level = 1
+        self.view_range = None
         self.redraw_cached()
 
     def redraw_cached(self):
@@ -125,6 +133,95 @@ class PlotCanvas(tk.Canvas):
         else:
             self.zoom_out()
 
+    def _on_drag_start(self, event):
+        if not self._x_in_plot(event.x):
+            return
+        self._drag_start_x = event.x
+        self._delete_selection()
+
+    def _on_drag_move(self, event):
+        if self._drag_start_x is None or self.plot_bounds is None:
+            return
+        x0, y0, x1, y1 = self.plot_bounds
+        x_start = max(x0, min(x1, self._drag_start_x))
+        x_now = max(x0, min(x1, event.x))
+        left, right = sorted((x_start, x_now))
+        self._delete_selection()
+        self._selection_id = self.create_rectangle(left, y0, right, y1, outline="#90caf9", fill="#1976d2", stipple="gray25")
+
+    def _on_drag_end(self, event):
+        if self._drag_start_x is None or self.plot_bounds is None:
+            return
+        x0, _y0, x1, _y1 = self.plot_bounds
+        x_start = max(x0, min(x1, self._drag_start_x))
+        x_end = max(x0, min(x1, event.x))
+        self._drag_start_x = None
+        self._delete_selection()
+
+        if abs(x_end - x_start) < 8:
+            return
+
+        t0 = self._x_to_time_us(min(x_start, x_end))
+        t1 = self._x_to_time_us(max(x_start, x_end))
+        if t0 is not None and t1 is not None and t1 > t0:
+            self.view_range = (t0, t1)
+            self.zoom_level = self._estimate_zoom_level()
+            self.redraw_cached()
+
+    def _delete_selection(self):
+        if self._selection_id is not None:
+            self.delete(self._selection_id)
+            self._selection_id = None
+
+    def _x_in_plot(self, x):
+        if self.plot_bounds is None:
+            return False
+        x0, _y0, x1, _y1 = self.plot_bounds
+        return x0 <= x <= x1
+
+    def _x_to_time_us(self, x):
+        if self.plot_bounds is None or self.view_range is None:
+            return None
+        x0, _y0, x1, _y1 = self.plot_bounds
+        t0, t1 = self.view_range
+        if x1 <= x0:
+            return None
+        return t0 + ((x - x0) / (x1 - x0)) * (t1 - t0)
+
+    def _estimate_zoom_level(self):
+        if not self._last_adc_points or self.view_range is None:
+            return 1
+        full_span = max(1, self._last_adc_points[-1][0] - self._last_adc_points[0][0])
+        view_span = max(1, self.view_range[1] - self.view_range[0])
+        return max(1, min(64, round(full_span / view_span)))
+
+    def _zoom_around_center(self, factor):
+        if not self._last_adc_points:
+            return
+        full_start = self._last_adc_points[0][0]
+        full_end = self._last_adc_points[-1][0]
+        if full_end <= full_start:
+            return
+
+        if self.view_range is None:
+            view_start, view_end = full_start, full_end
+        else:
+            view_start, view_end = self.view_range
+
+        center = (view_start + view_end) / 2
+        half_span = ((view_end - view_start) * factor) / 2
+        min_span = max(1, (full_end - full_start) / 1000)
+        half_span = max(min_span / 2, half_span)
+        new_start = max(full_start, center - half_span)
+        new_end = min(full_end, center + half_span)
+
+        if new_start == full_start and new_end == full_end:
+            self.view_range = None
+            self.zoom_level = 1
+        else:
+            self.view_range = (new_start, new_end)
+            self.zoom_level = self._estimate_zoom_level()
+
     def redraw(self, adc_points, dac_points):
         self._last_adc_points = list(adc_points)
         self._last_dac_points = list(dac_points)
@@ -134,6 +231,7 @@ class PlotCanvas(tk.Canvas):
         pad_l, pad_r, pad_t, pad_b = 52, 16, 40, 34
         x0, y0 = pad_l, pad_t
         x1, y1 = width - pad_r, height - pad_b
+        self.plot_bounds = (x0, y0, x1, y1)
 
         self.create_rectangle(x0, y0, x1, y1, outline="#2c3440", width=1)
 
@@ -178,6 +276,13 @@ class PlotCanvas(tk.Canvas):
         self._draw_series(dac_points, to_xy, "#ffbd4a")
 
     def _visible_points(self, adc_points, dac_points):
+        if self.view_range is not None:
+            t0, t1 = self.view_range
+            visible_adc = [p for p in adc_points if t0 <= p[0] <= t1]
+            visible_dac = [p for p in dac_points if t0 <= p[0] <= t1]
+            if len(visible_adc) >= 2:
+                return visible_adc, visible_dac
+
         if self.zoom_level <= 1 or len(adc_points) <= 2:
             return adc_points, dac_points
 
@@ -255,7 +360,7 @@ class StmControlApp(tk.Tk):
         ttk.Button(plot_tools, text="Zoom In", command=self.zoom_in, style="Tool.TButton").pack(side="left", padx=(0, 6))
         ttk.Button(plot_tools, text="Zoom Out", command=self.zoom_out, style="Tool.TButton").pack(side="left", padx=(0, 6))
         ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom, style="Reset.TButton").pack(side="left")
-        ttk.Label(plot_tools, text="Mouse wheel also zooms the graph").pack(side="right")
+        ttk.Label(plot_tools, text="Drag on the graph to zoom a selected region").pack(side="right")
 
         self.plot = PlotCanvas(right)
         self.plot.pack(fill="both", expand=True)

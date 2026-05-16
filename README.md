@@ -45,6 +45,7 @@ Use `Stop` to stop streaming.
 - `Zoom In`: show a smaller, more detailed recent time window
 - `Zoom Out`: widen the visible time window
 - `Reset Zoom`: return to the full buffered graph
+- Drag on the graph to zoom into a selected time region
 - Mouse wheel over the graph also zooms
 
 The graph header shows the latest real values:
