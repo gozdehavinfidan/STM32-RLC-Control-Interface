@@ -42,6 +42,37 @@ COLORS = {
     "neutral_hover": "#cfd8dc",
 }
 
+PLOT_THEMES = {
+    "dark": {
+        "canvas": "#101418",
+        "plot": "#101418",
+        "border": "#2c3440",
+        "grid": "#202832",
+        "axis": "#9aa7b2",
+        "label": "#c8d4df",
+        "header": "#d7e3ee",
+        "empty": "#697785",
+        "adc": "#45a3ff",
+        "dac": "#ffbd4a",
+        "selection_outline": "#90caf9",
+        "selection_fill": "#1976d2",
+    },
+    "light": {
+        "canvas": "#f8fafc",
+        "plot": "#ffffff",
+        "border": "#b0bec5",
+        "grid": "#d9e2ec",
+        "axis": "#546e7a",
+        "label": "#263238",
+        "header": "#263238",
+        "empty": "#78909c",
+        "adc": "#1565c0",
+        "dac": "#ef6c00",
+        "selection_outline": "#1976d2",
+        "selection_fill": "#bbdefb",
+    },
+}
+
 
 class SerialWorker:
     def __init__(self, event_queue):
@@ -97,7 +128,9 @@ class SerialWorker:
 
 class PlotCanvas(tk.Canvas):
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, background="#101418", highlightthickness=0, **kwargs)
+        self.theme_name = "dark"
+        self.theme = PLOT_THEMES[self.theme_name]
+        super().__init__(parent, background=self.theme["canvas"], highlightthickness=0, **kwargs)
         self.zoom_level = 1
         self.view_range = None
         self.plot_bounds = None
@@ -110,6 +143,14 @@ class PlotCanvas(tk.Canvas):
         self.bind("<ButtonRelease-1>", self._on_drag_end)
         self._drag_start_x = None
         self._selection_id = None
+
+    def set_theme(self, theme_name):
+        if theme_name not in PLOT_THEMES:
+            return
+        self.theme_name = theme_name
+        self.theme = PLOT_THEMES[theme_name]
+        self.configure(background=self.theme["canvas"])
+        self.redraw_cached()
 
     def zoom_in(self):
         self._zoom_around_center(0.5)
@@ -147,7 +188,12 @@ class PlotCanvas(tk.Canvas):
         x_now = max(x0, min(x1, event.x))
         left, right = sorted((x_start, x_now))
         self._delete_selection()
-        self._selection_id = self.create_rectangle(left, y0, right, y1, outline="#90caf9", fill="#1976d2", stipple="gray25")
+        self._selection_id = self.create_rectangle(
+            left, y0, right, y1,
+            outline=self.theme["selection_outline"],
+            fill=self.theme["selection_fill"],
+            stipple="gray25",
+        )
 
     def _on_drag_end(self, event):
         if self._drag_start_x is None or self.plot_bounds is None:
@@ -233,28 +279,28 @@ class PlotCanvas(tk.Canvas):
         x1, y1 = width - pad_r, height - pad_b
         self.plot_bounds = (x0, y0, x1, y1)
 
-        self.create_rectangle(x0, y0, x1, y1, outline="#2c3440", width=1)
+        self.create_rectangle(x0, y0, x1, y1, fill=self.theme["plot"], outline=self.theme["border"], width=1)
 
         for i in range(1, 5):
             y = y0 + (y1 - y0) * i / 5
-            self.create_line(x0, y, x1, y, fill="#202832")
+            self.create_line(x0, y, x1, y, fill=self.theme["grid"])
             mv = int(3300 - 3300 * i / 5)
-            self.create_text(8, y, text=f"{mv}", fill="#9aa7b2", anchor="w", font=("Segoe UI", 8))
+            self.create_text(8, y, text=f"{mv}", fill=self.theme["axis"], anchor="w", font=("Segoe UI", 8))
 
         for i in range(1, 6):
             x = x0 + (x1 - x0) * i / 6
-            self.create_line(x, y0, x, y1, fill="#202832")
+            self.create_line(x, y0, x, y1, fill=self.theme["grid"])
 
-        self.create_text(x0, height - 16, text="time", fill="#9aa7b2", anchor="w", font=("Segoe UI", 9))
-        self.create_text(8, y0, text="mV", fill="#9aa7b2", anchor="w", font=("Segoe UI", 9))
-        self.create_line(x1 - 150, y0 + 10, x1 - 118, y0 + 10, fill="#45a3ff", width=2)
-        self.create_text(x1 - 112, y0 + 10, text="ADC PA5", fill="#c8d4df", anchor="w", font=("Segoe UI", 9))
-        self.create_line(x1 - 150, y0 + 28, x1 - 118, y0 + 28, fill="#ffbd4a", width=2)
-        self.create_text(x1 - 112, y0 + 28, text="DAC PA4", fill="#c8d4df", anchor="w", font=("Segoe UI", 9))
+        self.create_text(x0, height - 16, text="time", fill=self.theme["axis"], anchor="w", font=("Segoe UI", 9))
+        self.create_text(8, y0, text="mV", fill=self.theme["axis"], anchor="w", font=("Segoe UI", 9))
+        self.create_line(x1 - 150, y0 + 10, x1 - 118, y0 + 10, fill=self.theme["adc"], width=2)
+        self.create_text(x1 - 112, y0 + 10, text="ADC PA5", fill=self.theme["label"], anchor="w", font=("Segoe UI", 9))
+        self.create_line(x1 - 150, y0 + 28, x1 - 118, y0 + 28, fill=self.theme["dac"], width=2)
+        self.create_text(x1 - 112, y0 + 28, text="DAC PA4", fill=self.theme["label"], anchor="w", font=("Segoe UI", 9))
 
         if not adc_points:
             self.create_text((x0 + x1) / 2, (y0 + y1) / 2, text="No data yet",
-                             fill="#697785", font=("Segoe UI", 12))
+                             fill=self.theme["empty"], font=("Segoe UI", 12))
             return
 
         adc_points, dac_points = self._visible_points(adc_points, dac_points)
@@ -272,8 +318,8 @@ class PlotCanvas(tk.Canvas):
             y = y1 - (y1 - y0) * mv / 3300
             return x, y
 
-        self._draw_series(adc_points, to_xy, "#45a3ff")
-        self._draw_series(dac_points, to_xy, "#ffbd4a")
+        self._draw_series(adc_points, to_xy, self.theme["adc"])
+        self._draw_series(dac_points, to_xy, self.theme["dac"])
 
     def _visible_points(self, adc_points, dac_points):
         if self.view_range is not None:
@@ -302,7 +348,7 @@ class PlotCanvas(tk.Canvas):
             f"ADC={adc_mv} mV   DAC={dac_mv} mV   "
             f"error={error_mv} mV   zoom={self.zoom_level}x   window={span_ms:.1f} ms"
         )
-        self.create_text(x0, y0 - 20, text=text, fill="#d7e3ee", anchor="w", font=("Segoe UI", 10, "bold"))
+        self.create_text(x0, y0 - 20, text=text, fill=self.theme["header"], anchor="w", font=("Segoe UI", 10, "bold"))
 
     def _draw_series(self, points, to_xy, color):
         if len(points) < 2:
@@ -327,6 +373,7 @@ class StmControlApp(tk.Tk):
         self.rows = []
         self.last_line_count = 0
         self.live_active = False
+        self.plot_light_var = tk.BooleanVar(value=False)
 
         self._build_ui()
         self.refresh_ports()
@@ -360,6 +407,13 @@ class StmControlApp(tk.Tk):
         ttk.Button(plot_tools, text="Zoom In", command=self.zoom_in, style="Tool.TButton").pack(side="left", padx=(0, 6))
         ttk.Button(plot_tools, text="Zoom Out", command=self.zoom_out, style="Tool.TButton").pack(side="left", padx=(0, 6))
         ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom, style="Reset.TButton").pack(side="left")
+        ttk.Checkbutton(
+            plot_tools,
+            text="Light Mode",
+            variable=self.plot_light_var,
+            command=self.toggle_plot_theme,
+            style="Switch.TCheckbutton",
+        ).pack(side="left", padx=(10, 0))
         ttk.Label(plot_tools, text="Drag on the graph to zoom a selected region").pack(side="right")
 
         self.plot = PlotCanvas(right)
@@ -380,6 +434,8 @@ class StmControlApp(tk.Tk):
         style.configure("TLabel", background=COLORS["surface"], foreground=COLORS["text"])
         style.configure("TEntry", fieldbackground=COLORS["panel"], foreground=COLORS["text"], bordercolor="#b0bec5")
         style.configure("TCombobox", fieldbackground=COLORS["panel"], foreground=COLORS["text"], bordercolor="#b0bec5")
+        style.configure("Switch.TCheckbutton", background=COLORS["surface"], foreground=COLORS["text"])
+        style.map("Switch.TCheckbutton", background=[("active", COLORS["surface"])], foreground=[("disabled", "#9e9e9e")])
 
         self._button_style(style, "Primary.TButton", COLORS["primary"], "#ffffff", COLORS["primary_hover"], COLORS["primary_active"])
         self._button_style(style, "Secondary.TButton", COLORS["secondary"], "#ffffff", COLORS["secondary_hover"], COLORS["secondary"])
@@ -581,6 +637,9 @@ class StmControlApp(tk.Tk):
 
     def reset_zoom(self):
         self.plot.reset_zoom()
+
+    def toggle_plot_theme(self):
+        self.plot.set_theme("light" if self.plot_light_var.get() else "dark")
 
     def clear_plot(self):
         self.adc_points.clear()

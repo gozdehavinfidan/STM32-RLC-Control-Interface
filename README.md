@@ -45,6 +45,7 @@ Use `Stop` to stop streaming.
 - `Zoom In`: show a smaller, more detailed recent time window
 - `Zoom Out`: widen the visible time window
 - `Reset Zoom`: return to the full buffered graph
+- `Light Mode`: switch only the graph area between dark and light themes
 - Drag on the graph to zoom into a selected time region
 - Mouse wheel over the graph also zooms
 
