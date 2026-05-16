@@ -32,6 +32,10 @@ COLORS = {
     "success_hover": "#1b5e20",
     "warning": "#f57c00",
     "warning_hover": "#ef6c00",
+    "clear": "#ffb300",
+    "clear_hover": "#ffa000",
+    "reset": "#3949ab",
+    "reset_hover": "#303f9f",
     "danger": "#c62828",
     "danger_hover": "#b71c1c",
     "neutral": "#eceff1",
@@ -250,7 +254,7 @@ class StmControlApp(tk.Tk):
         plot_tools.pack(fill="x", pady=(0, 6))
         ttk.Button(plot_tools, text="Zoom In", command=self.zoom_in, style="Tool.TButton").pack(side="left", padx=(0, 6))
         ttk.Button(plot_tools, text="Zoom Out", command=self.zoom_out, style="Tool.TButton").pack(side="left", padx=(0, 6))
-        ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom, style="Neutral.TButton").pack(side="left")
+        ttk.Button(plot_tools, text="Reset Zoom", command=self.reset_zoom, style="Reset.TButton").pack(side="left")
         ttk.Label(plot_tools, text="Mouse wheel also zooms the graph").pack(side="right")
 
         self.plot = PlotCanvas(right)
@@ -276,6 +280,8 @@ class StmControlApp(tk.Tk):
         self._button_style(style, "Secondary.TButton", COLORS["secondary"], "#ffffff", COLORS["secondary_hover"], COLORS["secondary"])
         self._button_style(style, "Success.TButton", COLORS["success"], "#ffffff", COLORS["success_hover"], COLORS["success"])
         self._button_style(style, "Warning.TButton", COLORS["warning"], "#ffffff", COLORS["warning_hover"], COLORS["warning"])
+        self._button_style(style, "Clear.TButton", COLORS["clear"], COLORS["text"], COLORS["clear_hover"], "#ff8f00")
+        self._button_style(style, "Reset.TButton", COLORS["reset"], "#ffffff", COLORS["reset_hover"], "#283593")
         self._button_style(style, "Danger.TButton", COLORS["danger"], "#ffffff", COLORS["danger_hover"], COLORS["danger"])
         self._button_style(style, "Tool.TButton", "#455a64", "#ffffff", "#37474f", "#263238")
         self._button_style(style, "Neutral.TButton", COLORS["neutral"], COLORS["text"], COLORS["neutral_hover"], "#b0bec5")
@@ -350,7 +356,7 @@ class StmControlApp(tk.Tk):
         ttk.Button(frame, text="Start Live", command=self.start_live, style="Primary.TButton").grid(row=8, column=0, columnspan=2, sticky="ew", pady=3)
         ttk.Button(frame, text="Start Capture", command=self.start_capture, style="Success.TButton").grid(row=9, column=0, columnspan=2, sticky="ew", pady=3)
         ttk.Button(frame, text="Stop", command=self.stop, style="Danger.TButton").grid(row=10, column=0, columnspan=2, sticky="ew", pady=3)
-        ttk.Button(frame, text="Clear Plot", command=self.clear_plot, style="Neutral.TButton").grid(row=11, column=0, columnspan=2, sticky="ew", pady=(10, 3))
+        ttk.Button(frame, text="Clear Plot", command=self.clear_plot, style="Clear.TButton").grid(row=11, column=0, columnspan=2, sticky="ew", pady=(10, 3))
         ttk.Button(frame, text="Save CSV", command=self.save_csv, style="Warning.TButton").grid(row=12, column=0, columnspan=2, sticky="ew", pady=3)
 
     def _build_log(self, parent):
